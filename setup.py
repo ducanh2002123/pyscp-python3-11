@@ -1,11 +1,15 @@
 import setuptools
 
+requirements = []
+with open('requirements.txt') as f:
+  requirements = f.read().splitlines()
+
 with open('README.md', encoding="utf8") as f:
     readme = f.read()
 
 setuptools.setup(
     name='pyscp',
-    version='1.0.22',
+    version='1.0.23',
     description='Python API and utilities for the www.scpwiki.com website.',
     long_description=readme,
     long_description_content_type="text/markdown",
@@ -25,11 +29,5 @@ setuptools.setup(
         'Programming Language :: Python :: 3.8'],
     keywords=['scp', 'wikidot'],
     packages=['pyscp'],
-    install_requires=[
-        'arrow',
-        'beautifulsoup4',
-        'blessings',
-        'lxml',
-        'requests',
-        'peewee==2.8.0'],
+    install_requires=requirements,
 )
