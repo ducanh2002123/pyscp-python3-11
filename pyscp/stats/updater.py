@@ -93,7 +93,7 @@ class Updater:
 
 if __name__ == "__main__":
     source = snapshot.Wiki(
-        'www.scp-wiki.net', '/home/anqxyr/heap/_scp/scp-wiki.2015-06-23.db')
+        'www.scpwiki.com', '/home/anqxyr/heap/_scp/scp-wiki.2015-06-23.db')
     target = wikidot.Wiki('scp-stats')
     target.auth('placeholder', 'placeholder')
     up = Updater(source, target)

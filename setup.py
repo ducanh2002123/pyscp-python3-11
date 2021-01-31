@@ -1,6 +1,5 @@
 import setuptools
 
-requirements = []
 with open('requirements.txt') as f:
   requirements = f.read().splitlines()
 
@@ -9,7 +8,7 @@ with open('README.md', encoding="utf8") as f:
 
 setuptools.setup(
     name='pyscp',
-    version='1.0.23',
+    version='1.0.24',
     description='Python API and utilities for the www.scpwiki.com website.',
     long_description=readme,
     long_description_content_type="text/markdown",

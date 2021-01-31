@@ -11,7 +11,7 @@ and communication with the Wikidot-hosted sites.
 # Module Imports
 ###############################################################################
 
-import arrow
+from datetime import datetime
 import bs4
 import functools
 import itertools
@@ -57,15 +57,16 @@ class InsistentRequest(requests.Session):
                     requests.Timeout,
                     requests.exceptions.ChunkedEncodingError):
                 continue
-            if 200 <= resp.status_code < 300:
-                return resp
-            elif 300 <= resp.status_code < 400:
-                raise requests.HTTPError(
-                    'Redirect attempted with url: {}'.format(url))
-            elif 400 <= resp.status_code < 600:
-                continue
-        raise requests.ConnectionError(
-            'Max retries exceeded with url: {}'.format(url))
+            return resp
+            # if 200 <= resp.status_code < 300:
+                # return resp
+            # elif 300 <= resp.status_code < 400:
+                # raise requests.HTTPError(
+                    # 'Redirect attempted with url: {}'.format(url))
+            # elif 400 <= resp.status_code < 600:
+                # continue
+        # raise requests.ConnectionError(
+            # 'Max retries exceeded with url: {}'.format(url))
 
     def get(self, url, **kwargs):
         return self.request('GET', url, **kwargs)
@@ -138,7 +139,7 @@ class Page(pyscp.core.Page):
         return super()._raw_title
 
     @property
-    def _raw_author(self):
+    def author(self):
         if 'created_by' in self._body:
             return self._body['created_by']
         return super()._raw_author
@@ -165,7 +166,7 @@ class Page(pyscp.core.Page):
             user = cells[4].text
             time = parse_element_time(cells[5])
             comment = cells[6].text if cells[6].text else None
-            yield pyscp.core.Revision(rev_id, number, user, time, comment)
+            yield pyscp.core.Revision(rev_id, number, User(user), time, comment)
 
     @pyscp.utils.cached_property
     def votes(self):
@@ -186,7 +187,7 @@ class Page(pyscp.core.Page):
     def source(self):
         data = self._module('viewsource/ViewSourceModule')['body']
         soup = bs4.BeautifulSoup(data, 'lxml')
-        return soup.text[11:].strip().replace(chr(160), ' ')
+        return '\n'.join(soup.text.split('\n')[1:])
 
     @property
     def created(self):
@@ -274,7 +275,7 @@ class Page(pyscp.core.Page):
             url,
             data=kwargs,
             files={'userfile': (name, data)},
-            cookies={'wikidot_token7': '123456'})
+            cookies={'wikidot_token7': '7fbc760204fb4082aa5e47b274d47f54'})
         response = bs4.BeautifulSoup(response.text, 'lxml')
         status = response.find(id='status').text
         message = response.find(id='message').text
@@ -354,6 +355,7 @@ class Wiki(pyscp.core.Wiki):
     def __init__(self, site):
         super().__init__(site)
         self.req = InsistentRequest()
+        self.cookies = 'wikidot_token7=123456;'
 
     def __repr__(self):
         return '{}.{}({})'.format(
@@ -383,8 +385,7 @@ class Wiki(pyscp.core.Wiki):
                 # in the payload and in the cookie
                 wikidot_token7='123456',
                 **kwargs),
-            headers={'Content-Type': 'application/x-www-form-urlencoded;'},
-            cookies={'wikidot_token7': '123456'}).json()
+            headers={'Content-Type': 'application/x-www-form-urlencoded;', 'Cookie': self.cookies}).json()
         if response['status'] != 'ok':
             log.error(response)
             raise RuntimeError(response.get('message') or response['status'])
@@ -446,13 +447,27 @@ class Wiki(pyscp.core.Wiki):
 
     def auth(self, username, password):
         """Login to wikidot with the given username/password pair."""
-        return self.req.post(
+        login = self.req.post(
             'https://www.wikidot.com/default--flow/login__LoginPopupScreen',
             data=dict(
                 login=username,
                 password=password,
                 action='Login2Action',
                 event='login'))
+        if self.custom_domain == True:
+            cd = self.req.get(self.site)
+            soup = bs4.BeautifulSoup(cd.text, 'html.parser')
+            s = soup.find_all('script')
+            for i in s:
+                if 'http://www.wikidot.com/default__flow/login__CustomDomainScript' in str(i):
+                    siteid = i.get('src')
+            redirect = self.req.get(siteid,headers=login.cookies.get_dict())
+            redir_url = redirect.text.split('\n')[4].replace("var redir_url = '",'').replace("';",'').replace(' ','') + '&url=' + self.site + '/'
+            auth = self.req.get(redir_url)
+            for i in auth.cookies.get_dict():
+                self.cookies += f'{i}={auth.cookies.get_dict()[i]};'
+        else:
+            self.cookies += f'WIKIDOT_SESSION_ID={login.cookies["WIKIDOT_SESSION_ID"]};'
 
     def list_categories(self):
         """Return forum categories."""
@@ -496,8 +511,7 @@ class Wiki(pyscp.core.Wiki):
                 action='DashboardMessageAction',
                 event='send',
                 wikidot_token7='123456'),
-            headers={'Content-Type': 'application/x-www-form-urlencoded;'},
-            cookies={'wikidot_token7': '123456'}).json()
+            headers={'Content-Type': 'application/x-www-form-urlencoded;', 'Cookie':  self.cookies}).json()
 
     ###########################################################################
     # SCP-Wiki Specific Methods
@@ -523,6 +537,120 @@ class Wiki(pyscp.core.Wiki):
             status, notes = [i if i else None for i in (status, notes)]
             yield pyscp.core.Image(url, source, status, notes, None)
 
+class User(pyscp.core.User):
+    """
+    Create a User object.
+    """
+
+    ###########################################################################
+    # Special Methods
+    ###########################################################################
+    
+    def __init__(self, username):
+        super().__init__(username)
+        self.req = InsistentRequest()
+    
+    def __repr__(self):
+        return '{}.{}({})'.format(
+            self.__module__,
+            self.__class__.__name__,
+            repr(self.user))
+    
+    ###########################################################################
+    # Internal Methods
+    ###########################################################################
+    
+    @pyscp.utils.log_errors(log.warning)
+    def _module(self, _name, **kwargs):
+        response = self.req.post(
+            'http://www.wikidot.com/ajax-module-connector.php',
+            data=dict(user_id=self.id,
+                moduleName=_name,
+                wikidot_token7='123456',
+                **kwargs),
+            headers={'Content-Type': 'application/x-www-form-urlencoded;', 'Cookie': 'wikidot_token7=123456;'}).json()
+        if response['status'] != 'ok':
+            log.error(response)
+            raise RuntimeError(response.get('message') or response['status'])
+        return response
+    
+    @pyscp.utils.cached_property
+    def _pdata(self):
+        data = self.req.get(self.url).text
+        soup = bs4.BeautifulSoup(data, 'lxml')
+        return (int(re.search('userId = ([0-9]+);', data).group(1)),
+                self.parse_data(soup))
+    
+    @pyscp.utils.log_errors(log.warning)
+    def parse_data(self, soup):
+        content = soup.find(id='page-content')
+        time = parse_element_time(content)
+        data = soup.find('div', {'id': 'user-info-area'}).find_all('dd')
+        new_data = []
+        for i in data:
+            new_data.append(i.get_text())
+        if 'none' in new_data[2]:
+            level = 'none'
+        elif 'low' in new_data[2]:
+            level = 'low'
+        elif 'medium' in new_data[2]:
+            level = 'medium'
+        elif 'high' in new_data[2] and 'very' not in new_data[2]:
+            level = 'high'
+        elif 'very high' in new_data[2]:
+            level = 'very high'
+        elif 'guru' in new_data[2]:
+            level = 'guru'
+        parsed_data = {'name': self.username, 'time': time, 'type': new_data[1].replace('\n','').replace(' ',''), 'level': level}
+        return parsed_data
+    
+    @property
+    def id(self):
+        return self._pdata[0]
+    
+    ###########################################################################
+    # Properties
+    ###########################################################################
+    
+    @property
+    def join_time(self):
+        return self._pdata[1]['time']
+    
+    @property
+    def type(self):
+        return self._pdata[1]['type']
+    
+    @property
+    def karma(self):
+        return self._pdata[1]['level']
+    
+    @property
+    def member(self):
+        data = self._module('userinfo/UserInfoMemberOfModule')['body']
+        soup = bs4.BeautifulSoup(data, 'lxml')
+        result = []
+        for e in soup.find_all('a'):
+            result.append(Wiki(e.get('href')))
+        return result
+    
+    @property
+    def moderator(self):
+        data = self._module('userinfo/UserInfoModeratorOfModule')['body']
+        soup = bs4.BeautifulSoup(data, 'lxml')
+        result = []
+        for e in soup.find_all('a'):
+            result.append(Wiki(e.get('href')))
+        return result
+    
+    @property
+    def admin(self):
+        data = self._module('userinfo/UserInfoAdminOfModule')['body']
+        soup = bs4.BeautifulSoup(data, 'lxml')
+        result = []
+        for e in soup.find_all('a'):
+            result.append(Wiki(e.get('href')))
+        return result
+
 ###############################################################################
 
 
@@ -534,8 +662,8 @@ def parse_element_id(element):
 
 def parse_element_time(element):
     """Extract and format time from an html element."""
-    unixtime = element.find(class_='odate')['class'][1].split('_')[1]
-    return arrow.get(unixtime).format('YYYY-MM-DD HH:mm:ss')
+    unixtime = int(element.find(class_='odate')['class'][1].split('_')[1])
+    return datetime.utcfromtimestamp(unixtime).strftime('%Y-%m-%d %H:%M:%S')
 
 
 def crawl_posts(post_containers, parent=None):

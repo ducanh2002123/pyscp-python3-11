@@ -377,8 +377,12 @@ class Wiki(metaclass=abc.ABCMeta):
     def __init__(self, site):
         parsed = urllib.parse.urlparse(site)
         netloc = parsed.netloc if parsed.netloc else parsed.path
+        self.custom_domain = True
         if '.' not in netloc:
             netloc += '.wikidot.com'
+            self.custom_domain = False
+        elif '.wikidot.com' in netloc:
+            self.custom_domain = False
         self.site = urllib.parse.urlunparse(['http', netloc, '', '', '', ''])
         self._title_data = {}
 
@@ -413,7 +417,7 @@ class Wiki(metaclass=abc.ABCMeta):
 
     def _update_titles(self):
         for name in (
-                'scp-series', 'scp-series-2', 'scp-series-3', 'scp-series-4', 'scp-series-5',
+                'scp-series', 'scp-series-2', 'scp-series-3', 'scp-series-4', 'scp-series-5', 'scp-series-6',
                 'joke-scps', 'scp-ex', 'archived-scps'):
             page = self(name)
             try:
@@ -481,6 +485,21 @@ class Wiki(metaclass=abc.ABCMeta):
         # to check which urls we should return and in which order
         pages = self._list_pages_parsed(**kwargs)
         return [p for p in pages if p.url in urls]
+
+class User(metaclass=abc.ABCMeta):
+    """
+    User Abstract Base Class.
+
+    User objects allow you to get a user data.
+    """
+    
+    ###########################################################################
+    # Special Methods
+    ###########################################################################
+    
+    def __init__(self, username):
+        self.username = username
+        self.url = f'http://www.wikidot.com/user:info/{username}'
 
 ###############################################################################
 # Named Tuple Containers
