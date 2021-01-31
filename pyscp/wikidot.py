@@ -512,6 +512,16 @@ class Wiki(pyscp.core.Wiki):
                 event='send',
                 wikidot_token7='123456'),
             headers={'Content-Type': 'application/x-www-form-urlencoded;', 'Cookie':  self.cookies}).json()
+    
+    ###########################################################################
+    # Properties
+    ###########################################################################
+    
+    @property
+    def title(self):
+        data = self.req.get(self.site).text
+        soup = bs4.BeautifulSoup(data, 'lxml')
+        return soup.title.string
 
     ###########################################################################
     # SCP-Wiki Specific Methods
