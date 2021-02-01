@@ -595,24 +595,23 @@ class User(pyscp.core.User):
     def parse_data(self, soup):
         content = soup.find(id='page-content')
         time = parse_element_time(content)
-        data = soup.find('div', {'id': 'user-info-area'}).find_all('dd')
-        new_data = []
-        for i in data:
-            new_data.append(i.get_text())
-        if 'none' in new_data[2]:
+        if 'none' in content:
             level = 'none'
-        elif 'low' in new_data[2]:
+        elif 'low' in content:
             level = 'low'
-        elif 'medium' in new_data[2]:
+        elif 'medium' in content:
             level = 'medium'
-        elif 'high' in new_data[2] and 'very' not in new_data[2]:
+        elif 'high' in content and 'very' not in content:
             level = 'high'
-        elif 'very high' in new_data[2]:
+        elif 'very high' in content:
             level = 'very high'
-        elif 'guru' in new_data[2]:
+        elif 'guru' in content:
             level = 'guru'
-        parsed_data = {'name': self.username, 'time': time, 'type': new_data[1].replace('\n','').replace(' ',''), 'level': level}
-        return parsed_data
+        if 'free' in content:
+            utype = 'free'
+        elif 'Pro' in content:
+            utype = 'Pro'
+        return {'name': self.username, 'time': time, 'type': utype, 'level': level}
     
     @property
     def id(self):
