@@ -58,15 +58,12 @@ class InsistentRequest(requests.Session):
                     requests.exceptions.ChunkedEncodingError):
                 continue
             return resp
-            # if 200 <= resp.status_code < 300:
-                # return resp
-            # elif 300 <= resp.status_code < 400:
-                # raise requests.HTTPError(
-                    # 'Redirect attempted with url: {}'.format(url))
-            # elif 400 <= resp.status_code < 600:
-                # continue
-        # raise requests.ConnectionError(
-            # 'Max retries exceeded with url: {}'.format(url))
+            if 200 <= resp.status_code < 300:
+                return resp
+            elif 400 <= resp.status_code < 600:
+                continue
+        raise requests.ConnectionError(
+            'Max retries exceeded with url: {}'.format(url))
 
     def get(self, url, **kwargs):
         return self.request('GET', url, **kwargs)
@@ -187,7 +184,7 @@ class Page(pyscp.core.Page):
     def source(self):
         data = self._module('viewsource/ViewSourceModule')['body']
         soup = bs4.BeautifulSoup(data, 'lxml')
-        return '\n'.join(soup.text.split('\n')[1:])
+        return ''.join([s + '\n' for s in soup.text.replace('\t','').split('\n')[1:]])
 
     @property
     def created(self):
