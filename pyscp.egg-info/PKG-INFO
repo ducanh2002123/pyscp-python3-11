@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: pyscp
-Version: 1.1.2
+Version: 1.1.3
 Summary: Python API and utilities for the www.scpwiki.com website.
 Home-page: https://github.com/MrNereof/pyscp/
 Author: MrNereof
