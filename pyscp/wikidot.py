@@ -588,8 +588,7 @@ class User(pyscp.core.User):
     def _pdata(self):
         data = self.req.get(self.url).text
         soup = bs4.BeautifulSoup(data, 'lxml')
-        return (int(re.search('userId = ([0-9]+);', data).group(1)),
-                self.parse_data(soup))
+        return self.parse_data(soup)
     
     @pyscp.utils.log_errors(log.warning)
     def parse_data(self, soup):
@@ -617,7 +616,9 @@ class User(pyscp.core.User):
     
     @property
     def id(self):
-        return self._pdata[0]
+        data = self.req.get(self.url).text
+        soup = bs4.BeautifulSoup(data, 'lxml')
+        return int(re.search('userId = ([0-9]+);', data).group(1))
     
     ###########################################################################
     # Properties
@@ -625,15 +626,15 @@ class User(pyscp.core.User):
     
     @property
     def join_time(self):
-        return self._pdata[1]['time']
+        return self._pdata['time']
     
     @property
     def type(self):
-        return self._pdata[1]['type']
+        return self._pdata['type']
     
     @property
     def karma(self):
-        return self._pdata[1]['level']
+        return self._pdata['level']
     
     @property
     def member(self):
