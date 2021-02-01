@@ -595,6 +595,7 @@ class User(pyscp.core.User):
     def parse_data(self, soup):
         content = soup.find(id='page-content')
         time = parse_element_time(content)
+        level = 'none'
         if 'none' in content:
             level = 'none'
         elif 'low' in content:
@@ -607,6 +608,7 @@ class User(pyscp.core.User):
             level = 'very high'
         elif 'guru' in content:
             level = 'guru'
+        utype = 'free'
         if 'free' in content:
             utype = 'free'
         elif 'Pro' in content:
