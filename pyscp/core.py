@@ -135,7 +135,6 @@ class Page(metaclass=abc.ABCMeta):
     @property
     def _id(self):
         """Unique ID number of the page."""
-        print(self._pdata[0])
         return self._pdata[0]
 
     @pyscp.utils.cached_property
