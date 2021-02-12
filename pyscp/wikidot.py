@@ -210,10 +210,11 @@ class Page(pyscp.core.Page):
         parsed = []
         for file in files:
             url = self._wiki.site + file.find('a')['href']
+            file_id = int(re.search('event, ([0-9]+)', str(file)).group(1))
             name = file.find('a').text.strip()
             filetype = file('td')[1].text.strip()
             size = file('td')[2].text.strip()
-            parsed.append(pyscp.core.File(url, name, filetype, size))
+            parsed.append(pyscp.core.File(url, file_id, name, filetype, size))
         return parsed
 
     ###########################################################################
@@ -272,13 +273,36 @@ class Page(pyscp.core.Page):
             url,
             data=kwargs,
             files={'userfile': (name, data)},
-            cookies={'wikidot_token7': '7fbc760204fb4082aa5e47b274d47f54'})
+            headers={'Cookie': self._wiki.cookies})
         response = bs4.BeautifulSoup(response.text, 'lxml')
         status = response.find(id='status').text
         message = response.find(id='message').text
-        if status != 'ok':
+        if status != 'ok' and status != 'file_exists':
             raise RuntimeError(message)
+        elif status == 'file_exists':
+            self.remove_file(name)
+            response = self._wiki.req.post(
+                url,
+                data=kwargs,
+                files={'userfile': (name, data)},
+                headers={'Cookie': self._wiki.cookies})
+            response = bs4.BeautifulSoup(response.text, 'lxml')
+            status = response.find(id='status').text
+            message = response.find(id='message').text
+            if status != 'ok':
+                raise RuntimeError(message)
         return response
+    
+    def remove_file(self,name):
+        files = self.files
+        id = -1
+        for file in files:
+            if file.name == name:
+                id = file.id
+        self._module('Empty',
+            event='deleteFile',
+            action='FileAction',
+            file_id=id)
 
     ###########################################################################
     # Voting Methods

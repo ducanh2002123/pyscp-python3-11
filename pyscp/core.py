@@ -135,6 +135,7 @@ class Page(metaclass=abc.ABCMeta):
     @property
     def _id(self):
         """Unique ID number of the page."""
+        print(self._pdata[0])
         return self._pdata[0]
 
     @pyscp.utils.cached_property
@@ -509,7 +510,7 @@ nt = collections.namedtuple
 Revision = nt('Revision', 'id number user time comment')
 Vote = nt('Vote', 'user value')
 Post = nt('Post', 'id title content user time parent')
-File = nt('File', 'url name filetype size')
+File = nt('File', 'url id name filetype size')
 Metadata = nt('Metadata', 'url user role date')
 Category = nt('Category', 'id title description size')
 Image = nt('Image', 'url source status notes data')
