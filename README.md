@@ -1,5 +1,10 @@
 # pyscp
 
+[![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)](https://www.python.org/)
+[![PyPI license](https://img.shields.io/pypi/l/ansicolortags.svg)](https://pypi.python.org/pypi/pyscp/)
+[![PyPI version fury.io](https://badge.fury.io/py/ansicolortags.svg)](https://pypi.python.org/pypi/pyscp/)
+[![PyPI pyversions](https://img.shields.io/pypi/pyversions/ansicolortags.svg)](https://pypi.python.org/pypi/pyscp/)
+
 **pyscp** is a python library for interacting with wikidot-hosted websites. The library is mainly intended for use by the administrative staff of the www.scpwiki.com website, and has a host of feature exclusive to it. However, the majority of the core functionality should be applicalbe to any wikidot-based site.
 
 ## Installation
