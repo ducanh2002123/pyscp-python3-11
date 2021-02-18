@@ -8,7 +8,7 @@ with open('README.md', encoding="utf8") as f:
 
 setuptools.setup(
     name='pyscp',
-    version='1.1.11',
+    version='1.1.12',
     description='Python API and utilities for the www.scpwiki.com website.',
     long_description=readme,
     long_description_content_type="text/markdown",
