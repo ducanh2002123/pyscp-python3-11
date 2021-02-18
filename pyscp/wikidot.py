@@ -184,8 +184,7 @@ class Page(pyscp.core.Page):
     def source(self):
         data = self._module('viewsource/ViewSourceModule')['body']
         soup = bs4.BeautifulSoup(data, 'lxml')
-        source = ''.join([s + '\n' for s in soup.text.replace('\t','').split('\n')[1:]][1:])
-        return 
+        return ''.join([s + '\n' for s in soup.text.replace('\t','').split('\n')[1:]][1:])
 
     @property
     def created(self):
