@@ -585,7 +585,7 @@ class User(pyscp.core.User):
         return '{}.{}({})'.format(
             self.__module__,
             self.__class__.__name__,
-            repr(self.user))
+            repr(self.username))
     
     ###########################################################################
     # Internal Methods
