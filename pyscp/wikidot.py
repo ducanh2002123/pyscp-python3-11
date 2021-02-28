@@ -223,24 +223,27 @@ class Page(pyscp.core.Page):
 
     def edit(self, source, title=None, comment=None):
         """Overwrite the page with the new source and title."""
-        if title is None:
-            title = self._raw_title
-        self._flush('html', 'history', 'source')
-        wiki_page = self.url.split('/')[-1]
-        lock = self._module(
-            'edit/PageEditModule',
-            mode='page',
-            wiki_page=wiki_page,
-            force_lock=True)
-        return self._action(
-            'savePage',
-            source=source,
-            title=title,
-            comments=comment,
-            wiki_page=wiki_page,
-            lock_id=lock['lock_id'],
-            lock_secret=lock['lock_secret'],
-            revision_id=lock.get('page_revision_id', None))
+        try:
+            if title is None:
+                title = self._raw_title
+            self._flush('html', 'history', 'source')
+            wiki_page = self.url.split('/')[-1]
+            lock = self._module(
+                'edit/PageEditModule',
+                mode='page',
+                wiki_page=wiki_page,
+                force_lock=True)
+            return self._action(
+                'savePage',
+                source=source,
+                title=title,
+                comments=comment,
+                wiki_page=wiki_page,
+                lock_id=lock['lock_id'],
+                lock_secret=lock['lock_secret'],
+                revision_id=lock.get('page_revision_id', None))
+        except:
+            self.create(source,title,comment)
 
     def create(self, source, title, comment=None):
         if not hasattr(self, '_cache'):

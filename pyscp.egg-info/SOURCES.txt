@@ -1,0 +1,16 @@
+LICENSE
+MANIFEST.in
+README.md
+requirements.txt
+setup.py
+pyscp/__init__.py
+pyscp/core.py
+pyscp/orm.py
+pyscp/snapshot.py
+pyscp/utils.py
+pyscp/wikidot.py
+pyscp.egg-info/PKG-INFO
+pyscp.egg-info/SOURCES.txt
+pyscp.egg-info/dependency_links.txt
+pyscp.egg-info/requires.txt
+pyscp.egg-info/top_level.txt
