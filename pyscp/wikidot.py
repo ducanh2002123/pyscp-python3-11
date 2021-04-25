@@ -260,7 +260,7 @@ class Page(pyscp.core.Page):
 
     def set_tags(self, tags):
         """Replace the tags of the page."""
-        res = self._action('saveTags', tags=''.join(tags))
+        res = self._action('saveTags', tags=' '.join(tags))
         self._flush('history', '_pdata')
         return res
 
