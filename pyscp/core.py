@@ -70,12 +70,12 @@ class Page(metaclass=abc.ABCMeta):
         self._wiki = wiki
 
     def __repr__(self):
-        return '{}.{}({}, {})'.format(
-            self.__module__, self.__class__.__name__,
-            repr(self.url), repr(self._wiki))
+        return "{}.{}({}, {})".format(
+            self.__module__, self.__class__.__name__, repr(self.url), repr(self._wiki)
+        )
 
     def __eq__(self, other):
-        if not hasattr(other, 'url') or not hasattr(other, '_wiki'):
+        if not hasattr(other, "url") or not hasattr(other, "_wiki"):
             return False
         return self.url == other.url and self._wiki is other._wiki
 
@@ -145,8 +145,8 @@ class Page(metaclass=abc.ABCMeta):
     @property
     def _raw_title(self):
         """Title as displayed on the page."""
-        title = self._soup.find(id='page-title')
-        return title.text.strip() if title else ''
+        title = self._soup.find(id="page-title")
+        return title.text.strip() if title else ""
 
     @property
     def _raw_author(self):
@@ -155,7 +155,7 @@ class Page(metaclass=abc.ABCMeta):
     @property
     def _soup(self):
         """BeautifulSoup of the contents of the page."""
-        return bs4.BeautifulSoup(self.html, 'lxml')
+        return bs4.BeautifulSoup(self.html, "lxml")
 
     ###########################################################################
     # Properties
@@ -179,7 +179,7 @@ class Page(metaclass=abc.ABCMeta):
     @property
     def text(self):
         """Plain text of the page."""
-        return self._soup.find(id='page-content').text
+        return self._soup.find(id="page-content").text
 
     @property
     def wordcount(self):
@@ -190,11 +190,11 @@ class Page(metaclass=abc.ABCMeta):
     def images(self):
         """Number of images dislayed on the page."""
         # TODO: needs more work.
-        return [i['src'] for i in self._soup('img')]
+        return [i["src"] for i in self._soup("img")]
 
     @property
     def name(self):
-        return self.url.split('/')[-1]
+        return self.url.split("/")[-1]
 
     @property
     def title(self):
@@ -204,8 +204,7 @@ class Page(metaclass=abc.ABCMeta):
         In case of SCP articles, will include the title from the 'series' page.
         """
         try:
-            return '{}: {}'.format(
-                self._raw_title, self._wiki.titles()[self.url])
+            return "{}: {}".format(self._raw_title, self._wiki.titles()[self.url])
         except KeyError:
             return self._raw_title
 
@@ -226,12 +225,12 @@ class Page(metaclass=abc.ABCMeta):
         data = [i for i in self._wiki.metadata() if i.url == self.url]
         data = {i.user: i for i in data}
 
-        if 'author' not in {i.role for i in data.values()}:
-            meta = Metadata(self.url, self._raw_author, 'author', None)
+        if "author" not in {i.role for i in data.values()}:
+            meta = Metadata(self.url, self._raw_author, "author", None)
             data[self._raw_author] = meta
 
         for k, v in data.items():
-            if v.role == 'author' and not v.date:
+            if v.role == "author" and not v.date:
                 data[k] = v._replace(date=self.created)
 
         return data
@@ -239,8 +238,7 @@ class Page(metaclass=abc.ABCMeta):
     @property
     def rating(self):
         """Rating of the page, excluding deleted accounts."""
-        return sum(
-            v.value for v in self.votes if v.user != '(account deleted)')
+        return sum(v.value for v in self.votes if v.user != "(account deleted)")
 
     @property
     @pyscp.utils.listify()
@@ -252,12 +250,15 @@ class Page(metaclass=abc.ABCMeta):
         images are not included.
         """
         unique = set()
-        for element in self._soup.select('#page-content a'):
-            href = element.get('href', None)
-            if (not href or href[0] != '/' or  # bad or absolute link
-                    href[-4:] in ('.png', '.jpg', '.gif')):
+        for element in self._soup.select("#page-content a"):
+            href = element.get("href", None)
+            if (
+                not href
+                or href[0] != "/"
+                or href[-4:] in (".png", ".jpg", ".gif")  # bad or absolute link
+            ):
                 continue
-            url = self._wiki.site + href.rstrip('|')
+            url = self._wiki.site + href.rstrip("|")
             if url not in unique:
                 unique.add(url)
                 yield url
@@ -267,9 +268,9 @@ class Page(metaclass=abc.ABCMeta):
         """Parent of the current page."""
         if not self.html:
             return None
-        breadcrumb = self._soup.select('#breadcrumbs a')
+        breadcrumb = self._soup.select("#breadcrumbs a")
         if breadcrumb:
-            return self._wiki.site + breadcrumb[-1]['href']
+            return self._wiki.site + breadcrumb[-1]["href"]
 
     @property
     def is_mainlist(self):
@@ -278,19 +279,19 @@ class Page(metaclass=abc.ABCMeta):
 
         This is an scp-wiki exclusive property.
         """
-        if 'scp-wiki' not in self._wiki.site:
+        if "scp-wiki" not in self._wiki.site:
             return False
-        if 'scp' not in self.tags:
+        if "scp" not in self.tags:
             return False
-        return bool(re.search(r'/scp-[0-9]{3,4}$', self.url))
+        return bool(re.search(r"/scp-[0-9]{3,4}$", self.url))
 
     ###########################################################################
     # Methods
     ###########################################################################
 
     def build_attribution_string(
-            self, templates=None, group_templates=None, separator=', ',
-            user_formatter=None):
+        self, templates=None, group_templates=None, separator=", ", user_formatter=None
+    ):
         """
         Create an attribution string based on the page's metadata.
 
@@ -298,10 +299,10 @@ class Page(metaclass=abc.ABCMeta):
         formatted, human-readable description of who was and is involved with
         the page, and in what role.
         """
-        roles = 'author rewrite translator maintainer'.split()
+        roles = "author rewrite translator maintainer".split()
 
         if not templates:
-            templates = {i: '{{user}} ({})'.format(i) for i in roles}
+            templates = {i: "{{user}} ({})".format(i) for i in roles}
 
         items = list(self.metadata.values())
         items.sort(key=lambda x: [roles.index(x.role), x.date])
@@ -317,20 +318,22 @@ class Page(metaclass=abc.ABCMeta):
 
         for (role, date), users in itemdict.items():
 
-            hdate = arrow.get(date).humanize() if date else ''
+            hdate = arrow.get(date).humanize() if date else ""
 
             if group_templates and len(users) > 1:
                 output.append(
                     group_templates[role].format(
                         date=date,
                         hdate=hdate,
-                        users=', '.join(users[:-1]),
-                        last_user=users[-1]))
+                        users=", ".join(users[:-1]),
+                        last_user=users[-1],
+                    )
+                )
             else:
                 for user in users:
                     output.append(
-                        templates[role].format(
-                            date=date, hdate=hdate, user=user))
+                        templates[role].format(date=date, hdate=hdate, user=user)
+                    )
 
         return separator.join(output)
 
@@ -378,17 +381,17 @@ class Wiki(metaclass=abc.ABCMeta):
         parsed = urllib.parse.urlparse(site)
         netloc = parsed.netloc if parsed.netloc else parsed.path
         self.custom_domain = True
-        if '.' not in netloc:
-            netloc += '.wikidot.com'
+        if "." not in netloc:
+            netloc += ".wikidot.com"
             self.custom_domain = False
-        elif '.wikidot.com' in netloc:
+        elif ".wikidot.com" in netloc:
             self.custom_domain = False
-        self.site = urllib.parse.urlunparse(['http', netloc, '', '', '', ''])
+        self.site = urllib.parse.urlunparse(["http", netloc, "", "", "", ""])
         self._title_data = {}
 
     def __call__(self, name):
-        url = name if self.site in name else '{}/{}'.format(self.site, name)
-        url = url.replace(' ', '-').replace('_', '-').lower()
+        url = name if self.site in name else "{}/{}".format(self.site, name)
+        url = url.replace(" ", "-").replace("_", "-").lower()
         return self.Page(self, url)
 
     ###########################################################################
@@ -404,21 +407,29 @@ class Wiki(metaclass=abc.ABCMeta):
         who created the zeroth revision of the page, or even have multiple
         users attached to the page in various roles.
         """
-        if 'scp-wiki' not in self.site:
+        if "scp-wiki" not in self.site:
             return []
-        soup = self('attribution-metadata')._soup
+        soup = self("attribution-metadata")._soup
         results = []
-        for row in soup('tr')[1:]:
-            name, user, type_, date = [i.text.strip() for i in row('td')]
+        for row in soup("tr")[1:]:
+            name, user, type_, date = [i.text.strip() for i in row("td")]
             name = name.lower()
-            url = '{}/{}'.format(self.site, name)
+            url = "{}/{}".format(self.site, name)
             results.append(pyscp.core.Metadata(url, user, type_, date))
         return results
 
     def _update_titles(self):
         for name in (
-                'scp-series', 'scp-series-2', 'scp-series-3', 'scp-series-4', 'scp-series-5', 'scp-series-6',
-                'joke-scps', 'scp-ex', 'archived-scps'):
+            "scp-series",
+            "scp-series-2",
+            "scp-series-3",
+            "scp-series-4",
+            "scp-series-5",
+            "scp-series-6",
+            "joke-scps",
+            "scp-ex",
+            "archived-scps",
+        ):
             page = self(name)
             try:
                 soup = page._soup
@@ -431,30 +442,30 @@ class Wiki(metaclass=abc.ABCMeta):
     @pyscp.utils.log_errors(logger=log.error)
     def titles(self):
         """Dict of url/title pairs for scp articles."""
-        if 'scp-wiki' not in self.site:
+        if "scp-wiki" not in self.site:
             return {}
 
         self._update_titles()
 
-        elems = [i.select('ul > li') for i in self._title_data.values()]
+        elems = [i.select("ul > li") for i in self._title_data.values()]
         elems = list(itertools.chain(*elems))
         try:
-            elems += list(self('scp-001')._soup(class_='series')[1]('p'))
+            elems += list(self("scp-001")._soup(class_="series")[1]("p"))
         except:
             pass
 
         titles = {}
         for elem in elems:
 
-            sep = ' - ' if ' - ' in elem.text else ', '
+            sep = " - " if " - " in elem.text else ", "
             try:
-                url1 = self.site + elem.a['href']
+                url1 = self.site + elem.a["href"]
                 skip, title = elem.text.split(sep, maxsplit=1)
             except (ValueError, TypeError):
                 continue
 
-            if title != '[ACCESS DENIED]':
-                url2 = self.site + '/' + skip.lower()
+            if title != "[ACCESS DENIED]":
+                url2 = self.site + "/" + skip.lower()
                 titles[url1] = titles[url2] = title
 
         return titles
@@ -462,7 +473,7 @@ class Wiki(metaclass=abc.ABCMeta):
     def list_pages(self, **kwargs):
         """Return pages matching the specified criteria."""
         pages = self._list_pages_parsed(**kwargs)
-        author = kwargs.pop('author', None)
+        author = kwargs.pop("author", None)
         if not author:
             # if 'author' isn't specified, there's no need to check rewrites
             return pages
@@ -471,7 +482,7 @@ class Wiki(metaclass=abc.ABCMeta):
             if meta.user == author:
                 # if username matches, include regardless of type
                 include.add(meta.url)
-            elif meta.role == 'author':
+            elif meta.role == "author":
                 # exclude only if override type is author.
                 # if url has author and rewrite author,
                 # it will appear in list_pages for both.
@@ -486,31 +497,33 @@ class Wiki(metaclass=abc.ABCMeta):
         pages = self._list_pages_parsed(**kwargs)
         return [p for p in pages if p.url in urls]
 
+
 class User(metaclass=abc.ABCMeta):
     """
     User Abstract Base Class.
 
     User objects allow you to get a user data.
     """
-    
+
     ###########################################################################
     # Special Methods
     ###########################################################################
-    
+
     def __init__(self, username):
         self.username = username
-        self.url = f'http://www.wikidot.com/user:info/{username}'
+        self.url = f"http://www.wikidot.com/user:info/{username}"
+
 
 ###############################################################################
 # Named Tuple Containers
 ###############################################################################
 
 nt = collections.namedtuple
-Revision = nt('Revision', 'id number user time comment')
-Vote = nt('Vote', 'user value')
-Post = nt('Post', 'id title content user time parent')
-File = nt('File', 'url id name filetype size')
-Metadata = nt('Metadata', 'url user role date')
-Category = nt('Category', 'id title description size')
-Image = nt('Image', 'url source status notes data')
+Revision = nt("Revision", "id number user time comment")
+Vote = nt("Vote", "user value")
+Post = nt("Post", "id title content user time parent")
+File = nt("File", "url id name filetype size")
+Metadata = nt("Metadata", "url user role date")
+Category = nt("Category", "id title description size")
+Image = nt("Image", "url source status notes data")
 del nt

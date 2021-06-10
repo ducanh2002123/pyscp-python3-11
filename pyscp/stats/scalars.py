@@ -6,6 +6,7 @@ Scalars.
 Take a list of pages and return a single value.
 """
 
+
 def upvotes(pages):
     """Upvotes."""
     return sum([v.value for v in p.votes].count(1) for p in pages)
@@ -29,9 +30,9 @@ def divided(pages):
 def redactions(pages):
     """Redaction score."""
     return sum(
-        p.text.count('█') +
-        20 * sum(map(p.text.count, ('REDACTED', 'EXPUNGED')))
-        for p in pages)
+        p.text.count("█") + 20 * sum(map(p.text.count, ("REDACTED", "EXPUNGED")))
+        for p in pages
+    )
 
 
 def wordcount(pages):

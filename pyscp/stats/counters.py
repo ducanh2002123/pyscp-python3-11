@@ -43,16 +43,18 @@ def page(pages, func):
 
 def block(pages, func):
     """Group skips based on which 100-block they're in."""
+
     def key(page):
-        if 'scp' not in page.tags:
+        if "scp" not in page.tags:
             return
-        match = re.search(r'[0-9]{3,4}$', page.url)
+        match = re.search(r"[0-9]{3,4}$", page.url)
         if not match:
             return
         match = int(match.group())
         if match == 1:
             return
         return str((match // 100) * 100).zfill(3)
+
     return make_counter(pages, func, key)
 
 
@@ -63,5 +65,5 @@ def chain(pages, func, *counters):
     results = collections.Counter()
     for key, val in counters[0](pages, lambda x: x).items():
         for ikey, ival in chain(val, func, *counters[1:]).items():
-            results['%s, %s' % (key, ikey)] = ival
+            results["%s, %s" % (key, ikey)] = ival
     return results
