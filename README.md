@@ -73,8 +73,8 @@ When working with large number of pages, it could be faster to create a snapshot
 ```python
 import pyscp
 
-creator = pyscp.snapshot.SnapshotCreator('www.scpwiki.com', 'snapshot_file.db')
-creator.take_snapshot(forums=False)
+creator = pyscp.snapshot.SnapshotCreator('snapshot_file.db')
+creator.take_snapshot('www.scpwiki.com', forums=False)
 # that's where we wait half an hour for it to finish
 ```
 

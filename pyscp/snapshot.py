@@ -21,7 +21,7 @@ import pathlib
 import re
 import requests
 
-from pyscp import core, orm, utils
+from pyscp import wikidot, core, orm, utils
 
 ###############################################################################
 # Global Constants And Variables
@@ -48,14 +48,18 @@ class Page(core.Page):
     def _pdata(self):
         """Preload the ids and contents of the page."""
         pdata = orm.Page.get(orm.Page.url == self.url)
-        return pdata.id, pdata._data['thread'], pdata.html
+        return pdata.id, pdata._data['thread'], pdata.source
 
     ###########################################################################
     # Properties
     ###########################################################################
 
     @property
-    def html(self):
+    def author(self):
+        return super()._raw_author
+
+    @property
+    def source(self):
         """Return HTML contents of the page."""
         return self._pdata[2]
 
@@ -218,7 +222,7 @@ class SnapshotCreator:
 
     def take_snapshot(self, wiki, forums=False):
         """Take new snapshot."""
-        self.wiki = wiki
+        self.wiki = wikidot.Wiki(wiki)
         self._save_all_pages()
         if forums:
             self._save_forums()
@@ -242,11 +246,11 @@ class SnapshotCreator:
             bar.value += 1
         bar.stop()
 
-    @utils.ignore(requests.HTTPError)
+    @utils.ignore((requests.HTTPError, AttributeError))
     def _save_page(self, page):
         """Download contents, revisions, votes and discussion of the page."""
         orm.Page.create(
-            id=page._id, url=page.url, thread=page._thread._id, html=page.html)
+            id=page._id, url=page.url, thread=page._thread._id, source=page.source)
 
         revisions = orm.User.convert_to_id(i._asdict() for i in page.history)
         votes = orm.User.convert_to_id(i._asdict() for i in page.votes)

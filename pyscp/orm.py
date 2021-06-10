@@ -85,7 +85,7 @@ class ForumThread(BaseModel):
 
 class Page(BaseModel):
     url = peewee.CharField(unique=True)
-    html = peewee.TextField()
+    source = peewee.TextField()
     thread = peewee.ForeignKeyField(
         ForumThread, related_name='page', null=True)
 

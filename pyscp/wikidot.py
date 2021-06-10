@@ -163,7 +163,7 @@ class Page(pyscp.core.Page):
             user = cells[4].text
             time = parse_element_time(cells[5])
             comment = cells[6].text if cells[6].text else None
-            yield pyscp.core.Revision(rev_id, number, User(user), time, comment)
+            yield pyscp.core.Revision(rev_id, number, user, time, comment)
 
     @pyscp.utils.cached_property
     def votes(self):
