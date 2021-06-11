@@ -61,6 +61,9 @@ class InsistentRequest(requests.Session):
             return resp
             if 200 <= resp.status_code < 300:
                 return resp
+            elif 300 <= resp.status_code < 400:
+                raise requests.HTTPError(
+                    'Redirect attempted with url: {}'.format(url))
             elif 400 <= resp.status_code < 600:
                 continue
         raise requests.ConnectionError("Max retries exceeded with url: {}".format(url))
@@ -495,6 +498,7 @@ class Wiki(pyscp.core.Wiki):
                     in str(i)
                 ):
                     siteid = i.get("src")
+                    break
             redirect = self.req.get(siteid, headers=login.cookies.get_dict())
             redir_url = re.findall(
                 r"var redir_url = '\b((?:https?:\/\/|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]+|\((?:[^\s()<>]+|(?:\([^\s()<>]+\)))*\))+(?:\((?:[^\s()<>]+|(?:\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))';",
