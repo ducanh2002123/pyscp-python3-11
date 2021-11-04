@@ -386,7 +386,7 @@ class Wiki(metaclass=abc.ABCMeta):
             self.custom_domain = False
         elif ".wikidot.com" in netloc:
             self.custom_domain = False
-        self.site = urllib.parse.urlunparse(["http", netloc, "", "", "", ""])
+        self.site = urllib.parse.urlunparse(["https" if "scp-wiki" in site else "http" if not parsed.scheme else parsed.scheme, netloc, "", "", "", ""])
         self._title_data = {}
 
     def __call__(self, name):
@@ -512,6 +512,39 @@ class User(metaclass=abc.ABCMeta):
     def __init__(self, username):
         self.username = username
         self.url = f"http://www.wikidot.com/user:info/{username}"
+
+    def __repr__(self):
+        return "{}.{}({})".format(
+            self.__module__, self.__class__.__name__, repr(self.username)
+        )
+
+    ###########################################################################
+    # Abstract Methods
+    ###########################################################################
+
+    @property
+    @abc.abstractmethod
+    def _id(self):
+        """Unique ID number of the user."""
+        pass
+
+    @property
+    @abc.abstractmethod
+    def member(self):
+        """Wikis where user is a member."""
+        pass
+
+    @property
+    @abc.abstractmethod
+    def moderator(self):
+        """Wikis where user is a member."""
+        pass
+
+    @property
+    @abc.abstractmethod
+    def admin(self):
+        """Wikis where user is a admin."""
+        pass
 
 
 ###############################################################################

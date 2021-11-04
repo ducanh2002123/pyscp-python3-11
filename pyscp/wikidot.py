@@ -17,6 +17,7 @@ import functools
 import itertools
 import logging
 import pyscp
+import arrow
 import re
 import requests
 
@@ -62,8 +63,7 @@ class InsistentRequest(requests.Session):
             if 200 <= resp.status_code < 300:
                 return resp
             elif 300 <= resp.status_code < 400:
-                raise requests.HTTPError(
-                    'Redirect attempted with url: {}'.format(url))
+                raise requests.HTTPError("Redirect attempted with url: {}".format(url))
             elif 400 <= resp.status_code < 600:
                 continue
         raise requests.ConnectionError("Max retries exceeded with url: {}".format(url))
@@ -101,9 +101,13 @@ class Page(pyscp.core.Page):
     # Internal Methods
     ###########################################################################
 
-    def _module(self, *args, **kwargs):
+    def _module(self, *args, page_id=None, **kwargs):
         """Call Wikidot module."""
-        return self._wiki._module(*args, page_id=self._id, **kwargs)
+        return self._wiki._module(
+            *args,
+            page_id=page_id if page_id else self._id,
+            **kwargs,
+        )
 
     def _action(self, event, **kwargs):
         """Execute WikiPageAction."""
@@ -231,26 +235,32 @@ class Page(pyscp.core.Page):
 
     def edit(self, source, title=None, comment=None):
         """Overwrite the page with the new source and title."""
+        if title is None:
+            title = self._raw_title
+        self._flush("html", "history", "source")
+        wiki_page = self.url.split("/")[-1]
         try:
-            if title is None:
-                title = self._raw_title
-            self._flush("html", "history", "source")
-            wiki_page = self.url.split("/")[-1]
-            lock = self._module(
-                "edit/PageEditModule", mode="page", wiki_page=wiki_page, force_lock=True
-            )
-            return self._action(
-                "savePage",
-                source=source,
-                title=title,
-                comments=comment,
-                wiki_page=wiki_page,
-                lock_id=lock["lock_id"],
-                lock_secret=lock["lock_secret"],
-                revision_id=lock.get("page_revision_id", None),
-            )
-        except:
-            self.create(source, title, comment)
+            page_id = self._id
+        except AttributeError:
+            page_id = ""
+        lock = self._module(
+            "edit/PageEditModule",
+            mode="page",
+            wiki_page=wiki_page,
+            force_lock=True,
+            page_id=page_id,
+        )
+        return self._action(
+            "savePage",
+            source=source,
+            title=title,
+            comments=comment,
+            wiki_page=wiki_page,
+            lock_id=lock["lock_id"],
+            lock_secret=lock["lock_secret"],
+            revision_id=lock.get("page_revision_id", None),
+            page_id=page_id,
+        )
 
     def create(self, source, title, comment=None):
         if not hasattr(self, "_cache"):
@@ -289,30 +299,17 @@ class Page(pyscp.core.Page):
         response = bs4.BeautifulSoup(response.text, "lxml")
         status = response.find(id="status").text
         message = response.find(id="message").text
-        if status != "ok" and status != "file_exists":
+        if status != "ok":
             raise RuntimeError(message)
-        elif status == "file_exists":
-            self.remove_file(name)
-            response = self._wiki.req.post(
-                url,
-                data=kwargs,
-                files={"userfile": (name, data)},
-                headers={"Cookie": self._wiki.cookies},
-            )
-            response = bs4.BeautifulSoup(response.text, "lxml")
-            status = response.find(id="status").text
-            message = response.find(id="message").text
-            if status != "ok":
-                raise RuntimeError(message)
         return response
 
     def remove_file(self, name):
-        files = self.files
-        id = -1
-        for file in files:
+        for file in self.files:
             if file.name == name:
-                id = file.id
-        self._module("Empty", event="deleteFile", action="FileAction", file_id=id)
+                self._module(
+                    "Empty", event="deleteFile", action="FileAction", file_id=file.id
+                )
+                break
 
     ###########################################################################
     # Voting Methods
@@ -600,6 +597,8 @@ class User(pyscp.core.User):
     Create a User object.
     """
 
+    Wiki = Wiki
+
     ###########################################################################
     # Special Methods
     ###########################################################################
@@ -619,10 +618,17 @@ class User(pyscp.core.User):
 
     @pyscp.utils.log_errors(log.warning)
     def _module(self, _name, **kwargs):
+        """
+        Call a Wikidot module.
+
+        This method is responsible for most of the class' functionality.
+        Almost all other methods of the class are using _module in one way
+        or another.
+        """
         response = self.req.post(
             "http://www.wikidot.com/ajax-module-connector.php",
             data=dict(
-                user_id=self.id, moduleName=_name, wikidot_token7="123456", **kwargs
+                user_id=self._id, moduleName=_name, wikidot_token7="123456", **kwargs
             ),
             headers={
                 "Content-Type": "application/x-www-form-urlencoded;",
@@ -635,83 +641,36 @@ class User(pyscp.core.User):
         return response
 
     @pyscp.utils.cached_property
-    def _pdata(self):
+    def _id(self):
+        """Unique ID number of the user."""
         data = self.req.get(self.url).text
-        soup = bs4.BeautifulSoup(data, "lxml")
-        return self.parse_data(soup)
-
-    @pyscp.utils.log_errors(log.warning)
-    def parse_data(self, soup):
-        content = soup.find(id="page-content")
-        time = parse_element_time(content)
-        level = "none"
-        if "none" in content:
-            level = "none"
-        elif "low" in content:
-            level = "low"
-        elif "medium" in content:
-            level = "medium"
-        elif "high" in content and "very" not in content:
-            level = "high"
-        elif "very high" in content:
-            level = "very high"
-        elif "guru" in content:
-            level = "guru"
-        utype = "free"
-        if "free" in content:
-            utype = "free"
-        elif "Pro" in content:
-            utype = "Pro"
-        return {"name": self.username, "time": time, "type": utype, "level": level}
-
-    @property
-    def id(self):
-        data = self.req.get(self.url).text
-        soup = bs4.BeautifulSoup(data, "lxml")
         return int(re.search("userId = ([0-9]+);", data).group(1))
 
     ###########################################################################
     # Properties
     ###########################################################################
 
-    @property
-    def join_time(self):
-        return self._pdata["time"]
-
-    @property
-    def type(self):
-        return self._pdata["type"]
-
-    @property
-    def karma(self):
-        return self._pdata["level"]
+    def user_sites(self, module):
+        """Get wikis by module names."""
+        data = self._module(module)["body"]
+        soup = bs4.BeautifulSoup(data, "lxml")
+        for elem in soup.find_all("a"):
+            yield self.Wiki(elem.get("href"))
 
     @property
     def member(self):
-        data = self._module("userinfo/UserInfoMemberOfModule")["body"]
-        soup = bs4.BeautifulSoup(data, "lxml")
-        result = []
-        for e in soup.find_all("a"):
-            result.append(Wiki(e.get("href")))
-        return result
+        """Wikis where user is a member."""
+        return self.user_sites("userinfo/UserInfoMemberOfModule")
 
     @property
     def moderator(self):
-        data = self._module("userinfo/UserInfoModeratorOfModule")["body"]
-        soup = bs4.BeautifulSoup(data, "lxml")
-        result = []
-        for e in soup.find_all("a"):
-            result.append(Wiki(e.get("href")))
-        return result
+        """Wikis where user is a member."""
+        return self.user_sites("userinfo/UserInfoModeratorOfModule")
 
     @property
     def admin(self):
-        data = self._module("userinfo/UserInfoAdminOfModule")["body"]
-        soup = bs4.BeautifulSoup(data, "lxml")
-        result = []
-        for e in soup.find_all("a"):
-            result.append(Wiki(e.get("href")))
-        return result
+        """Wikis where user is a admin."""
+        return self.user_sites("userinfo/UserInfoAdminOfModule")
 
 
 ###############################################################################
