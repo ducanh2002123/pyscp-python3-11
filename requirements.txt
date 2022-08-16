@@ -3,4 +3,4 @@ beautifulsoup4
 blessings
 lxml
 requests
-peewee==2.8.0
+peewee

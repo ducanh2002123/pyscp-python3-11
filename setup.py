@@ -8,7 +8,7 @@ with open('README.md', encoding="utf8") as f:
 
 setuptools.setup(
     name='pyscp',
-    version='1.1.19',
+    version='1.1.20',
     description='Python API and utilities for the www.scpwiki.com website.',
     long_description=readme,
     long_description_content_type="text/markdown",
@@ -26,7 +26,8 @@ setuptools.setup(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9'],
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10'],
     keywords=['scp', 'wikidot'],
     packages=['pyscp'],
     install_requires=requirements,
